@@ -5,6 +5,8 @@ from enum import Enum
 from time import time
 import aiohttp
 
+from typing import List
+
 
 class Languages(Enum):
     BASH = "bash"
@@ -52,16 +54,19 @@ class Status(Enum):
 class LangLang:
     def __init__(self, url: str):
         self.url = url
+        self.session = None
 
-    async def eval(self, language: Languages, code: str, input_: str = None):
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self.url,
-                json={"language": language.value, "code": code, "input": input_},
-            ) as resp:
-                data = await resp.json()
+    async def eval(self, language: Languages, code: str, inputs: List[str] = []):
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
 
-        return Status(data["status"]), data["result"]
+        async with self.session.post(
+            self.url,
+            json={"language": language.value, "code": code, "inputs": inputs},
+        ) as resp:
+            data = await resp.json()
+
+        return list(map(lambda r: (Status(r["status"]), r["result"]), data["results"]))
 
 
 def setup_concurrency(text, delete_after: int = 5):
@@ -122,7 +127,9 @@ async def _eval(ctx, *, code: str):
         message = await ctx.reply(
             embed=discord.Embed(title="컴파일 중..", color=discord.Color.blurple())
         )
-        status, result = await bot.langlang.eval(lang, code)
+
+        results = await bot.langlang.eval(lang, code)
+        status, result = results[0]
 
         embed = discord.Embed(title="결과")
         embed.set_footer(text=lang.value)
