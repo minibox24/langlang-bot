@@ -88,7 +88,7 @@ def setup_concurrency(text, delete_after: int = 5):
 
 
 bot = commands.Bot(command_prefix="!")
-bot.langlang = LangLang("http://localhost:5000/langlang/eval")
+bot.langlang = LangLang("http://localhost:5000/eval")
 bot.processes = {}
 
 
